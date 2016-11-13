@@ -285,15 +285,69 @@ func (t *Tree) Reverse(from Value) *Iterator {
 
 func newIterator(n *node, from Value, reverse bool) *Iterator {
 	i := &Iterator{node: n, from: from, reverse: reverse}
-	if i.node != nil {
-		if i.reverse && i.node.greater != nil && (i.from == nil || i.node.value.Less(i.from)) {
-			i.child = newIterator(i.node.greater, i.from, true)
-		} else if !i.reverse && i.node.less != nil && (i.from == nil || i.from.Less(i.node.value)) {
-			i.child = newIterator(i.node.less, i.from, false)
-		}
+	if i.node == nil {
+		return i
+	}
+
+	if i.reverse {
+		i.childrenBeforeReverse()
+	} else {
+		i.childrenBefore()
 	}
 
 	return i
+}
+
+func (i *Iterator) childrenBefore() {
+	if i.node.less == nil {
+		return
+	}
+
+	if i.from != nil && !i.from.Less(i.node.value) {
+		return
+	}
+
+	i.child = newIterator(i.node.less, i.from, false)
+}
+
+func (i *Iterator) childrenBeforeReverse() {
+	if i.node.greater == nil {
+		return
+	}
+
+	if i.from != nil && !i.node.value.Less(i.from) {
+		return
+	}
+
+	i.child = newIterator(i.node.greater, i.from, true)
+}
+
+func (i *Iterator) childrenAfter() {
+	if i.node.greater != nil {
+		i.child = newIterator(i.node.greater, i.from, false)
+	}
+}
+
+func (i *Iterator) childrenAfterReverse() {
+	if i.node.less != nil {
+		i.child = newIterator(i.node.less, i.from, true)
+	}
+}
+
+func (i *Iterator) afterFrom(v Value) bool {
+	if i.from == nil {
+		return true
+	}
+
+	if i.reverse && v.Less(i.from) {
+		return true
+	}
+
+	if !i.reverse && i.from.Less(v) {
+		return true
+	}
+
+	return false
 }
 
 // Next returns the next value in order (or the previous in case of
@@ -301,9 +355,7 @@ func newIterator(n *node, from Value, reverse bool) *Iterator {
 // value, Next() returns nil.
 func (i *Iterator) Next() (Value, bool) {
 	if i.child != nil {
-		if v, ok := i.child.Next(); ok && (i.from == nil ||
-			i.reverse && v.Less(i.from) ||
-			!i.reverse && i.from.Less(v)) {
+		if v, ok := i.child.Next(); ok && i.afterFrom(v) {
 			return v, true
 		}
 	}
@@ -313,17 +365,17 @@ func (i *Iterator) Next() (Value, bool) {
 	}
 
 	v := i.node.value
-	if i.reverse && i.node.less != nil {
-		i.child = newIterator(i.node.less, i.from, true)
-	} else if !i.reverse && i.node.greater != nil {
-		i.child = newIterator(i.node.greater, i.from, false)
+	if i.reverse {
+		i.childrenAfterReverse()
+	} else {
+		i.childrenAfter()
 	}
 
 	i.node = nil
 
-	if i.from != nil && (i.reverse && !v.Less(i.from) || !i.reverse && !i.from.Less(v)) {
-		return i.Next()
+	if i.afterFrom(v) {
+		return v, true
 	}
 
-	return v, true
+	return i.Next()
 }

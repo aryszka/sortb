@@ -25,6 +25,7 @@ func benchmarkFind(b *testing.B, n int) {
 		tree.Insert(intt(2 * rnd.Intn(n)))
 	}
 
+	rnd = rand.New(rand.NewSource(0))
 	b.ResetTimer()
 	for i := 1; i <= b.N; i++ {
 		tree.Find(intt(2 * rnd.Intn(n)))
@@ -38,6 +39,7 @@ func benchmarkDelete(b *testing.B, n int) {
 		tree.Insert(intt(2 * rnd.Intn(n)))
 	}
 
+	rnd = rand.New(rand.NewSource(0))
 	b.ResetTimer()
 	for i := 1; i <= b.N; i++ {
 		tree.Delete(intt(2 * rnd.Intn(n)))
