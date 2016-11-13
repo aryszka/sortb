@@ -1,6 +1,11 @@
 /*
 Package sortb provides a data structure to store sorted generic values
 using a balanced binary search tree.
+
+Stored objects must implement the Less(Value) bool comparison and the
+Equal(Value) bool identity check. For tree inserts and traversal, only
+the Less comparison is used. This allows use cases where the comparison
+and the equality is based on different attributes of the stored objects.
 */
 package sortb
 

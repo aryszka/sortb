@@ -10,6 +10,13 @@ type intt int
 func (i intt) Less(j Value) bool  { return i < j.(intt) }
 func (i intt) Equal(j Value) bool { return i == j.(intt) }
 
+type multiValue struct {
+	id, value int
+}
+
+func (mv multiValue) Less(v Value) bool  { return mv.value < v.(multiValue).value }
+func (mv multiValue) Equal(v Value) bool { return mv.id == v.(multiValue).id }
+
 func testBalance(t *testing.T, n int, f func(int) intt) {
 	all := make([]intt, 0, n)
 	tree := new(Tree)
@@ -515,5 +522,30 @@ func TestReverse(t *testing.T) {
 
 			i++
 		}
+	}
+}
+
+func TestMultiValue(t *testing.T) {
+	tree := new(Tree)
+	tree.Insert(multiValue{id: 1, value: 3})
+	tree.Insert(multiValue{id: 2, value: 2})
+	tree.Insert(multiValue{id: 3, value: 1})
+
+	iter := tree.Iterate(nil)
+	v1, _ := iter.Next()
+	v2, _ := iter.Next()
+	v3, _ := iter.Next()
+	if v1.(multiValue).id != 3 || v2.(multiValue).id != 2 || v3.(multiValue).id != 1 {
+		t.Error("failed to store values")
+	}
+
+	tree.Delete(multiValue{id: 2})
+
+	iter = tree.Iterate(nil)
+	v1, _ = iter.Next()
+	v2, _ = iter.Next()
+	_, ok := iter.Next()
+	if v1.(multiValue).id != 3 || v2.(multiValue).id != 1 || ok {
+		t.Error("failed to store values")
 	}
 }
