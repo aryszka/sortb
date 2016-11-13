@@ -16,7 +16,7 @@ type Tree struct {
 // from the smallest to the greatest.
 //
 // The iterator does not operate over a snapshot, so
-// the effects of calling Insert() and Remove() while
+// the effects of calling Insert() and Delete() while
 // iterating may result in invalid iteration.
 type Iterator struct {
 	node  *node
@@ -30,11 +30,11 @@ type Value interface {
 	// a stored value.
 	Less(i Value) bool
 
-	// Equal is used to identify identical values. Identical
-	// values are stored only once. To be able to remove a
-	// value from the tree, it must be identified by Equal().
-	// It is OK to return always false, if the Remove()
-	// function is not used.
+	// Equal is used to identify values. Identical values are
+	// stored only once. To be able to delete a value from
+	// the tree, it must be identified by Equal(). It is OK
+	// to return always false, if the Delete() function is
+	// not used.
 	Equal(i Value) bool
 }
 
@@ -54,25 +54,49 @@ func (n *node) getDepth() int {
 	return n.depth
 }
 
+func (n *node) updateDepth() {
+	n.depth = 1 + max(n.less.getDepth(), n.greater.getDepth())
+}
+
+func swapLeft(n *node) *node {
+	l := n.less
+	n.less, l.greater = l.greater, n
+	n.updateDepth()
+	l.updateDepth()
+	return l
+}
+
+func swapRight(n *node) *node {
+	l := n.greater
+	n.greater, l.less = l.less, n
+	n.updateDepth()
+	l.updateDepth()
+	return l
+}
+
 func balance(n *node) *node {
 	ld := n.less.getDepth()
 	gd := n.greater.getDepth()
-	if ld > 1 && ld > 2*gd {
-		to := n.less
-		n.less = nil
-		n.depth = gd
-		n = insert(to, n)
-	} else if gd > 1 && gd > 2*ld {
-		to := n.greater
-		n.greater = nil
-		n.depth = ld
-		n = insert(to, n)
+	dd := ld - gd
+
+	if dd > 1 {
+		if n.less.less.getDepth() < n.less.greater.getDepth() {
+			n.less = swapRight(n.less)
+		}
+
+		n = swapLeft(n)
+	} else if dd < -1 {
+		if n.greater.greater.getDepth() < n.greater.less.getDepth() {
+			n.greater = swapLeft(n.greater)
+		}
+
+		n = swapRight(n)
 	}
 
-	n.depth = max(n.less.getDepth(), n.greater.getDepth())
 	return n
 }
 
+// TODO: eliminate recursion
 func insert(to *node, n *node) *node {
 	if to == nil {
 		return n
@@ -88,52 +112,76 @@ func insert(to *node, n *node) *node {
 		to.greater = insert(to.greater, n)
 	}
 
+	to.updateDepth()
 	to = balance(to)
 	return to
 }
 
-func (n *node) remove(value Value) (*node, bool) {
+func smallest(n *node) *node {
+	if n == nil || n.less == nil {
+		return n
+	}
+
+	return smallest(n.less)
+}
+
+// TODO:
+// - optimize
+// - eliminate recursion
+func del(n *node, v Value) (*node, bool) {
 	if n == nil {
 		return nil, false
 	}
 
-	if n.value.Equal(value) {
+	if n.value.Equal(v) {
 		switch {
-		case n.less != nil:
-			n = insert(n.greater, n.less)
-		case n.greater != nil:
-			n = insert(n.less, n.greater)
-		default:
+		case n.less == nil && n.greater == nil:
 			n = nil
+		case n.less == nil:
+			n = n.greater
+		case n.greater == nil:
+			n = n.less
+		default:
+			nn := smallest(n.greater)
+			n.value = nn.value
+			n.greater, _ = del(n.greater, n.value)
+			n.updateDepth()
+			n = balance(n)
 		}
 
 		return n, true
 	}
 
-	var removed bool
-	if n.value.Less(value) {
-		n.greater, removed = n.greater.remove(value)
+	var deleted bool
+	if n.value.Less(v) {
+		n.greater, deleted = del(n.greater, v)
 	} else {
-		n.less, removed = n.less.remove(value)
+		n.less, deleted = del(n.less, v)
 	}
 
-	n = balance(n)
-	return n, removed
+	if deleted {
+		n.updateDepth()
+		n = balance(n)
+	}
+
+	return n, deleted
 }
 
 // Insert a value in the tree.
-func (t *Tree) Insert(value Value) {
-	t.node = insert(t.node, &node{value: value, depth: 1})
+func (t *Tree) Insert(v Value) {
+	if v != nil {
+		t.node = insert(t.node, &node{value: v, depth: 1})
+	}
 }
 
-// Remove a value from the tree.
-func (t *Tree) Remove(value Value) bool {
+// Delete a value from the tree.
+func (t *Tree) Delete(v Value) bool {
 	var found bool
-	t.node, found = t.node.remove(value)
+	t.node, found = del(t.node, v)
 	return found
 }
 
-// Get a new iterator.
+// Iterate returns a new iterator.
 func (t *Tree) Iterate() *Iterator {
 	return newIterator(t.node)
 }
@@ -147,7 +195,7 @@ func newIterator(n *node) *Iterator {
 	return i
 }
 
-// Get the next value.
+// Next returns the next value.
 func (i *Iterator) Next() (Value, bool) {
 	if i.child != nil {
 		if n, ok := i.child.Next(); ok {
