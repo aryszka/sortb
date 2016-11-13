@@ -19,8 +19,9 @@ type Tree struct {
 // the effects of calling Insert() and Delete() while
 // iterating may result in invalid iteration.
 type Iterator struct {
-	node  *node
-	child *Iterator
+	node    *node
+	child   *Iterator
+	reverse bool
 }
 
 // Value must be implemented by the objects to be stored.
@@ -152,6 +153,27 @@ func next(n *node, v Value) *node {
 	return next(n.greater, v)
 }
 
+func prev(n *node, v Value) *node {
+	if n == nil || v == nil {
+		return nil
+	}
+
+	if n.value.Less(v) {
+		if n.greater == nil {
+			return n
+		}
+
+		ng := prev(n.greater, v)
+		if ng == nil {
+			return n
+		}
+
+		return ng
+	}
+
+	return prev(n.less, v)
+}
+
 // TODO:
 // - optimize
 // - eliminate recursion
@@ -215,6 +237,15 @@ func (t *Tree) Next(v Value) Value {
 	return n.value
 }
 
+func (t *Tree) Prev(v Value) Value {
+	n := prev(t.node, v)
+	if n == nil {
+		return nil
+	}
+
+	return n.value
+}
+
 // Delete a value from the tree.
 func (t *Tree) Delete(v Value) bool {
 	var found bool
@@ -224,13 +255,22 @@ func (t *Tree) Delete(v Value) bool {
 
 // Iterate returns a new iterator.
 func (t *Tree) Iterate() *Iterator {
-	return newIterator(t.node)
+	return newIterator(t.node, false)
 }
 
-func newIterator(n *node) *Iterator {
-	i := &Iterator{node: n}
-	if i.node != nil && i.node.less != nil {
-		i.child = newIterator(i.node.less)
+// Reverse is like Iterate but in reverse order.
+func (t *Tree) Reverse() *Iterator {
+	return newIterator(t.node, true)
+}
+
+func newIterator(n *node, reverse bool) *Iterator {
+	i := &Iterator{node: n, reverse: reverse}
+	if i.node != nil {
+		if i.reverse && i.node.greater != nil {
+			i.child = newIterator(i.node.greater, true)
+		} else if !i.reverse && i.node.less != nil {
+			i.child = newIterator(i.node.less, false)
+		}
 	}
 
 	return i
@@ -249,8 +289,10 @@ func (i *Iterator) Next() (Value, bool) {
 	}
 
 	n := i.node.value
-	if i.node.greater != nil {
-		i.child = newIterator(i.node.greater)
+	if i.reverse && i.node.less != nil {
+		i.child = newIterator(i.node.less, true)
+	} else if !i.reverse && i.node.greater != nil {
+		i.child = newIterator(i.node.greater, false)
 	}
 
 	i.node = nil

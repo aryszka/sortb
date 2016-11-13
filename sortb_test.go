@@ -207,6 +207,70 @@ func TestNext(t *testing.T) {
 	}
 }
 
+func TestPrev(t *testing.T) {
+	for _, ti := range []struct {
+		init        []intt
+		value, next Value
+	}{{
+		nil,
+		nil,
+		nil,
+	}, {
+		nil,
+		intt(42),
+		nil,
+	}, {
+		[]intt{42},
+		nil,
+		nil,
+	}, {
+		[]intt{42},
+		intt(18),
+		nil,
+	}, {
+		[]intt{42},
+		intt(42),
+		nil,
+	}, {
+		[]intt{42},
+		intt(81),
+		intt(42),
+	}, {
+		[]intt{-18, -5, 3, 42},
+		nil,
+		nil,
+	}, {
+		[]intt{-18, -5, 3, 42},
+		intt(81),
+		intt(42),
+	}, {
+		[]intt{-18, -5, 3, 42},
+		intt(42),
+		intt(3),
+	}, {
+		[]intt{-18, -5, 3, 42},
+		intt(1),
+		intt(-5),
+	}, {
+		[]intt{-18, -5, 3, 42},
+		intt(-5),
+		intt(-18),
+	}, {
+		[]intt{-18, -5, 3, 42},
+		intt(-18),
+		nil,
+	}} {
+		tree := new(Tree)
+		for _, i := range ti.init {
+			tree.Insert(i)
+		}
+
+		if n := tree.Prev(ti.value); n != ti.next {
+			t.Error("failed to find previous value", n, ti.next)
+		}
+	}
+}
+
 func TestDelete(t *testing.T) {
 	for _, ti := range []struct {
 		init    []intt
@@ -282,8 +346,8 @@ func TestIterate(t *testing.T) {
 		[]intt{42, -5},
 		[]intt{-5, 42},
 	}, {
-		[]intt{-18, 42, -5},
-		[]intt{-18, -5, 42},
+		[]intt{-18, 42, -5, 3, 81},
+		[]intt{-18, -5, 3, 42, 81},
 	}} {
 		tree := new(Tree)
 		for _, i := range ti.init {
@@ -291,6 +355,45 @@ func TestIterate(t *testing.T) {
 		}
 
 		iter := tree.Iterate()
+		i := 0
+		for {
+			v, ok := iter.Next()
+			if !ok {
+				break
+			}
+
+			if v != ti.expect[i] {
+				t.Error("failed to return the right value", v, ti.expect[i])
+			}
+
+			i++
+		}
+	}
+}
+
+func TestReverse(t *testing.T) {
+	for _, ti := range []struct {
+		init   []intt
+		expect []intt
+	}{{
+		nil,
+		nil,
+	}, {
+		[]intt{42},
+		[]intt{42},
+	}, {
+		[]intt{-5, 42},
+		[]intt{42, -5},
+	}, {
+		[]intt{-18, 42, -5, 3, 81},
+		[]intt{81, 42, 3, -5, -18},
+	}} {
+		tree := new(Tree)
+		for _, i := range ti.init {
+			tree.Insert(i)
+		}
+
+		iter := tree.Reverse()
 		i := 0
 		for {
 			v, ok := iter.Next()
