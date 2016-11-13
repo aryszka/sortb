@@ -93,7 +93,7 @@ func TestInsertIter(t *testing.T) {
 			tree.Insert(i)
 		}
 
-		iter := tree.Iterate()
+		iter := tree.Iterate(nil)
 		for _, i := range ti.check {
 			if v, ok := iter.Next(); !ok || v.(intt) != i {
 				t.Error("failed to retrieve", i)
@@ -319,7 +319,7 @@ func TestDelete(t *testing.T) {
 			}
 		}
 
-		iter := tree.Iterate()
+		iter := tree.Iterate(nil)
 		for _, i := range ti.check {
 			if v, ok := iter.Next(); !ok || v.(intt) != i {
 				t.Error("failed to retrieve", i)
@@ -335,26 +335,75 @@ func TestDelete(t *testing.T) {
 func TestIterate(t *testing.T) {
 	for _, ti := range []struct {
 		init   []intt
+		from   Value
 		expect []intt
 	}{{
 		nil,
 		nil,
+		nil,
+	}, {
+		nil,
+		intt(42),
+		nil,
 	}, {
 		[]intt{42},
+		nil,
+		[]intt{42},
+	}, {
+		[]intt{42},
+		intt(42),
+		nil,
+	}, {
+		[]intt{42, -5},
+		nil,
+		[]intt{-5, 42},
+	}, {
+		[]intt{42, -5},
+		intt(42),
+		nil,
+	}, {
+		[]intt{42, -5},
+		intt(-5),
 		[]intt{42},
 	}, {
 		[]intt{42, -5},
-		[]intt{-5, 42},
+		intt(3),
+		[]intt{42},
 	}, {
 		[]intt{-18, 42, -5, 3, 81},
+		nil,
 		[]intt{-18, -5, 3, 42, 81},
+	}, {
+		[]intt{-18, 42, -5, 3, 81},
+		intt(-42),
+		[]intt{-18, -5, 3, 42, 81},
+	}, {
+		[]intt{-18, 42, -5, 3, 81},
+		intt(-18),
+		[]intt{-5, 3, 42, 81},
+	}, {
+		[]intt{-18, 42, -5, 3, 81},
+		intt(3),
+		[]intt{42, 81},
+	}, {
+		[]intt{-18, 42, -5, 3, 81},
+		intt(5),
+		[]intt{42, 81},
+	}, {
+		[]intt{-18, 42, -5, 3, 81},
+		intt(81),
+		nil,
+	}, {
+		[]intt{-18, 42, -5, 3, 81},
+		intt(128),
+		nil,
 	}} {
 		tree := new(Tree)
 		for _, i := range ti.init {
 			tree.Insert(i)
 		}
 
-		iter := tree.Iterate()
+		iter := tree.Iterate(ti.from)
 		i := 0
 		for {
 			v, ok := iter.Next()
@@ -362,8 +411,13 @@ func TestIterate(t *testing.T) {
 				break
 			}
 
-			if v != ti.expect[i] {
-				t.Error("failed to return the right value", v, ti.expect[i])
+			if len(ti.expect) <= i || v != ti.expect[i] {
+				var e Value
+				if len(ti.expect) > i {
+					e = ti.expect[i]
+				}
+
+				t.Error("failed to return the right value", v, e)
 			}
 
 			i++
@@ -374,18 +428,67 @@ func TestIterate(t *testing.T) {
 func TestReverse(t *testing.T) {
 	for _, ti := range []struct {
 		init   []intt
+		from   Value
 		expect []intt
 	}{{
 		nil,
 		nil,
+		nil,
+	}, {
+		nil,
+		intt(42),
+		nil,
 	}, {
 		[]intt{42},
+		nil,
 		[]intt{42},
 	}, {
-		[]intt{-5, 42},
+		[]intt{42},
+		intt(42),
+		nil,
+	}, {
+		[]intt{42, -5},
+		nil,
 		[]intt{42, -5},
 	}, {
+		[]intt{42, -5},
+		intt(-5),
+		nil,
+	}, {
+		[]intt{42, -5},
+		intt(-5),
+		nil,
+	}, {
+		[]intt{42, -5},
+		intt(3),
+		[]intt{-5},
+	}, {
 		[]intt{-18, 42, -5, 3, 81},
+		nil,
+		[]intt{81, 42, 3, -5, -18},
+	}, {
+		[]intt{-18, 42, -5, 3, 81},
+		intt(-42),
+		nil,
+	}, {
+		[]intt{-18, 42, -5, 3, 81},
+		intt(-18),
+		nil,
+	}, {
+		[]intt{-18, 42, -5, 3, 81},
+		intt(3),
+		[]intt{-5, -18},
+	}, {
+		[]intt{-18, 42, -5, 3, 81},
+		intt(5),
+		[]intt{3, -5, -18},
+	}, {
+		[]intt{-18, 42, -5, 3, 81},
+		intt(81),
+		[]intt{42, 3, -5, -18},
+	}, {
+		[]intt{-18, 42, -5, 3, 81},
+		intt(128),
 		[]intt{81, 42, 3, -5, -18},
 	}} {
 		tree := new(Tree)
@@ -393,7 +496,7 @@ func TestReverse(t *testing.T) {
 			tree.Insert(i)
 		}
 
-		iter := tree.Reverse()
+		iter := tree.Reverse(ti.from)
 		i := 0
 		for {
 			v, ok := iter.Next()
@@ -401,8 +504,13 @@ func TestReverse(t *testing.T) {
 				break
 			}
 
-			if v != ti.expect[i] {
-				t.Error("failed to return the right value", v, ti.expect[i])
+			if len(ti.expect) <= i || v != ti.expect[i] {
+				var e Value
+				if len(ti.expect) > i {
+					e = ti.expect[i]
+				}
+
+				t.Error("failed to return the right value", v, e)
 			}
 
 			i++

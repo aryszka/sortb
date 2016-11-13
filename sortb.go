@@ -1,5 +1,6 @@
 /*
-Package sortb provides a data structure to store sorted generic values using a balanced binary search tree.
+Package sortb provides a data structure to store sorted generic values
+using a balanced binary search tree.
 */
 package sortb
 
@@ -24,6 +25,7 @@ type Tree struct {
 type Iterator struct {
 	node    *node
 	child   *Iterator
+	from    Value
 	reverse bool
 }
 
@@ -262,22 +264,27 @@ func (t *Tree) Delete(v Value) bool {
 
 // Iterate returns a new iterator to iterate over the sorted values
 // stored by the tree.
-func (t *Tree) Iterate() *Iterator {
-	return newIterator(t.node, false)
+//
+// The from argument tells the iterator where to start the iteration.
+// If it is nil, it starts at the beginning. If it is not nil, it
+// starts with the first value that is not less and not equal to from.
+// The value of from does not have to be a member of the tree.
+func (t *Tree) Iterate(from Value) *Iterator {
+	return newIterator(t.node, from, false)
 }
 
 // Reverse is like Iterate but in reverse order.
-func (t *Tree) Reverse() *Iterator {
-	return newIterator(t.node, true)
+func (t *Tree) Reverse(from Value) *Iterator {
+	return newIterator(t.node, from, true)
 }
 
-func newIterator(n *node, reverse bool) *Iterator {
-	i := &Iterator{node: n, reverse: reverse}
+func newIterator(n *node, from Value, reverse bool) *Iterator {
+	i := &Iterator{node: n, from: from, reverse: reverse}
 	if i.node != nil {
-		if i.reverse && i.node.greater != nil {
-			i.child = newIterator(i.node.greater, true)
-		} else if !i.reverse && i.node.less != nil {
-			i.child = newIterator(i.node.less, false)
+		if i.reverse && i.node.greater != nil && (i.from == nil || i.node.value.Less(i.from)) {
+			i.child = newIterator(i.node.greater, i.from, true)
+		} else if !i.reverse && i.node.less != nil && (i.from == nil || i.from.Less(i.node.value)) {
+			i.child = newIterator(i.node.less, i.from, false)
 		}
 	}
 
@@ -289,8 +296,10 @@ func newIterator(n *node, reverse bool) *Iterator {
 // value, Next() returns nil.
 func (i *Iterator) Next() (Value, bool) {
 	if i.child != nil {
-		if n, ok := i.child.Next(); ok {
-			return n, true
+		if v, ok := i.child.Next(); ok && (i.from == nil ||
+			i.reverse && v.Less(i.from) ||
+			!i.reverse && i.from.Less(v)) {
+			return v, true
 		}
 	}
 
@@ -298,13 +307,18 @@ func (i *Iterator) Next() (Value, bool) {
 		return nil, false
 	}
 
-	n := i.node.value
+	v := i.node.value
 	if i.reverse && i.node.less != nil {
-		i.child = newIterator(i.node.less, true)
+		i.child = newIterator(i.node.less, i.from, true)
 	} else if !i.reverse && i.node.greater != nil {
-		i.child = newIterator(i.node.greater, false)
+		i.child = newIterator(i.node.greater, i.from, false)
 	}
 
 	i.node = nil
-	return n, true
+
+	if i.from != nil && (i.reverse && !v.Less(i.from) || !i.reverse && !i.from.Less(v)) {
+		return i.Next()
+	}
+
+	return v, true
 }

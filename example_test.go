@@ -17,7 +17,7 @@ func Example() {
 		t.Insert(i)
 	}
 
-	iter := t.Iterate()
+	iter := t.Iterate(nil)
 	for {
 		v, ok := iter.Next()
 		if !ok {
