@@ -1,3 +1,6 @@
+/*
+Package sortb provides a data structure to store sorted generic values using a balanced binary search tree.
+*/
 package sortb
 
 type node struct {
@@ -7,13 +10,13 @@ type node struct {
 	depth   int
 }
 
-// Tree objects store values sorted as a binary tree.
+// Tree objects store sorted values.
 type Tree struct {
 	node *node
 }
 
 // Iterator is used to iterate over values in the tree
-// from the smallest to the greatest.
+// from the smallest to the greatest or in reverse order.
 //
 // The iterator does not operate over a snapshot, so
 // the effects of calling Insert() and Delete() while
@@ -24,7 +27,7 @@ type Iterator struct {
 	reverse bool
 }
 
-// Value must be implemented by the objects to be stored.
+// Value must be implemented by the objects to be stored by the tree.
 type Value interface {
 
 	// Less is used to identify the sorting position of
@@ -95,7 +98,6 @@ func balance(n *node) *node {
 	return n
 }
 
-// TODO: eliminate recursion
 func insert(to *node, n *node) *node {
 	if to == nil {
 		return n
@@ -174,9 +176,6 @@ func prev(n *node, v Value) *node {
 	return prev(n.less, v)
 }
 
-// TODO:
-// - optimize
-// - eliminate recursion
 func del(n *node, v Value) (*node, bool) {
 	if n == nil {
 		return nil, false
@@ -216,7 +215,8 @@ func del(n *node, v Value) (*node, bool) {
 	return n, deleted
 }
 
-// Insert a value in the tree.
+// Insert a value in the tree. If the value is already
+// a member of the tree, the tree stays unchanged.
 func (t *Tree) Insert(v Value) {
 	if v != nil {
 		t.node = insert(t.node, &node{value: v, depth: 1})
@@ -228,6 +228,9 @@ func (t *Tree) Find(v Value) bool {
 	return find(t.node, v) != nil
 }
 
+// Next returns the next value in order or nil if no such value
+// was found. The value represented by the v argument does not
+// need to be the member of the tree.
 func (t *Tree) Next(v Value) Value {
 	n := next(t.node, v)
 	if n == nil {
@@ -237,6 +240,9 @@ func (t *Tree) Next(v Value) Value {
 	return n.value
 }
 
+// Next returns the previous value in order or nil if no such value
+// was found. The value represented by the v argument does not need
+// to be the member of the tree.
 func (t *Tree) Prev(v Value) Value {
 	n := prev(t.node, v)
 	if n == nil {
@@ -246,14 +252,16 @@ func (t *Tree) Prev(v Value) Value {
 	return n.value
 }
 
-// Delete a value from the tree.
+// Delete a value from the tree. It returns true if the tree was
+// changed.
 func (t *Tree) Delete(v Value) bool {
 	var found bool
 	t.node, found = del(t.node, v)
 	return found
 }
 
-// Iterate returns a new iterator.
+// Iterate returns a new iterator to iterate over the sorted values
+// stored by the tree.
 func (t *Tree) Iterate() *Iterator {
 	return newIterator(t.node, false)
 }
@@ -276,7 +284,9 @@ func newIterator(n *node, reverse bool) *Iterator {
 	return i
 }
 
-// Next returns the next value.
+// Next returns the next value in order (or the previous in case of
+// the reverse iterator). If the iterator has reached the last stored
+// value, Next() returns nil.
 func (i *Iterator) Next() (Value, bool) {
 	if i.child != nil {
 		if n, ok := i.child.Next(); ok {
