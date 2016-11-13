@@ -12,7 +12,7 @@ func (i intt) Equal(j Value) bool { return i == j.(intt) }
 
 func testBalance(t *testing.T, n int, f func(int) intt) {
 	all := make([]intt, 0, n)
-	tree := &Tree{}
+	tree := new(Tree)
 
 	for i := 0; i < n; i++ {
 		ii := f(i)
@@ -57,14 +57,15 @@ func TestBalanceLinear(t *testing.T) {
 }
 
 func TestBalanceRandom(t *testing.T) {
-	sizes := []int{1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000}
-	if testing.Short() {
-		sizes = sizes[:9]
-	}
-
+	sizes := []int{1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000}
 	for i := 0; i < 10; i++ {
 		rnd := rand.New(rand.NewSource(int64(i)))
-		for _, j := range sizes {
+		s := sizes
+		if i > 2 || testing.Short() {
+			sizes = sizes[:9]
+		}
+
+		for _, j := range s {
 			testBalance(t, j, func(int) intt { return intt(rnd.Intn(j)) })
 		}
 	}
@@ -87,7 +88,7 @@ func TestInsertIter(t *testing.T) {
 		[]intt{-5, 42, -42, 42, 3, -18},
 		[]intt{-42, -18, -5, 3, 42},
 	}} {
-		tree := &Tree{}
+		tree := new(Tree)
 		for _, i := range ti.insert {
 			tree.Insert(i)
 		}
@@ -105,6 +106,107 @@ func TestInsertIter(t *testing.T) {
 	}
 }
 
+func TestFind(t *testing.T) {
+	for _, ti := range []struct {
+		init   []intt
+		find   Value
+		expect bool
+	}{{
+		nil,
+		nil,
+		false,
+	}, {
+		nil,
+		intt(42),
+		false,
+	}, {
+		[]intt{42},
+		nil,
+		false,
+	}, {
+		[]intt{-18},
+		intt(42),
+		false,
+	}, {
+		[]intt{-18, 42},
+		intt(42),
+		true,
+	}} {
+		tree := new(Tree)
+		for _, i := range ti.init {
+			tree.Insert(i)
+		}
+
+		if tree.Find(ti.find) != ti.expect {
+			t.Error("invalid find result", !ti.expect)
+		}
+	}
+}
+
+func TestNext(t *testing.T) {
+	for _, ti := range []struct {
+		init        []intt
+		value, next Value
+	}{{
+		nil,
+		nil,
+		nil,
+	}, {
+		nil,
+		intt(42),
+		nil,
+	}, {
+		[]intt{42},
+		nil,
+		nil,
+	}, {
+		[]intt{42},
+		intt(81),
+		nil,
+	}, {
+		[]intt{42},
+		intt(42),
+		nil,
+	}, {
+		[]intt{42},
+		intt(18),
+		intt(42),
+	}, {
+		[]intt{-18, -5, 3, 42},
+		nil,
+		nil,
+	}, {
+		[]intt{-18, -5, 3, 42},
+		intt(-42),
+		intt(-18),
+	}, {
+		[]intt{-18, -5, 3, 42},
+		intt(-18),
+		intt(-5),
+	}, {
+		[]intt{-18, -5, 3, 42},
+		intt(1),
+		intt(3),
+	}, {
+		[]intt{-18, -5, 3, 42},
+		intt(3),
+		intt(42),
+	}, {
+		[]intt{-18, -5, 3, 42},
+		intt(42),
+		nil,
+	}} {
+		tree := new(Tree)
+		for _, i := range ti.init {
+			tree.Insert(i)
+		}
+
+		if n := tree.Next(ti.value); n != ti.next {
+			t.Error("failed to find next value", n, ti.next)
+		}
+	}
+}
+
 func TestDelete(t *testing.T) {
 	for _, ti := range []struct {
 		init    []intt
@@ -112,37 +214,37 @@ func TestDelete(t *testing.T) {
 		deleted []bool
 		check   []intt
 	}{{
-		// 	nil,
-		// 	nil,
-		// 	nil,
-		// 	nil,
-		// }, {
-		// 	nil,
-		// 	[]intt{42},
-		// 	[]bool{false},
-		// 	nil,
-		// }, {
-		// 	[]intt{42},
-		// 	[]intt{42},
-		// 	[]bool{true},
-		// 	nil,
-		// }, {
-		// 	[]intt{42},
-		// 	[]intt{-42, -42},
-		// 	[]bool{false, false},
-		// 	[]intt{42},
-		// }, {
-		// 	[]intt{42},
-		// 	[]intt{42, 42},
-		// 	[]bool{true, false},
-		// 	nil,
-		// }, {
+		nil,
+		nil,
+		nil,
+		nil,
+	}, {
+		nil,
+		[]intt{42},
+		[]bool{false},
+		nil,
+	}, {
+		[]intt{42},
+		[]intt{42},
+		[]bool{true},
+		nil,
+	}, {
+		[]intt{42},
+		[]intt{-42, -42},
+		[]bool{false, false},
+		[]intt{42},
+	}, {
+		[]intt{42},
+		[]intt{42, 42},
+		[]bool{true, false},
+		nil,
+	}, {
 		[]intt{-5, 42, -42, 42, 3, -18},
 		[]intt{-42, 18, -5, 3},
 		[]bool{true, false, true, true},
 		[]intt{-18, 42},
 	}} {
-		tree := &Tree{}
+		tree := new(Tree)
 		for _, i := range ti.init {
 			tree.Insert(i)
 		}
@@ -162,6 +264,45 @@ func TestDelete(t *testing.T) {
 
 		if v, ok := iter.Next(); ok {
 			t.Error("unexpected value", v.(intt))
+		}
+	}
+}
+
+func TestIterate(t *testing.T) {
+	for _, ti := range []struct {
+		init   []intt
+		expect []intt
+	}{{
+		nil,
+		nil,
+	}, {
+		[]intt{42},
+		[]intt{42},
+	}, {
+		[]intt{42, -5},
+		[]intt{-5, 42},
+	}, {
+		[]intt{-18, 42, -5},
+		[]intt{-18, -5, 42},
+	}} {
+		tree := new(Tree)
+		for _, i := range ti.init {
+			tree.Insert(i)
+		}
+
+		iter := tree.Iterate()
+		i := 0
+		for {
+			v, ok := iter.Next()
+			if !ok {
+				break
+			}
+
+			if v != ti.expect[i] {
+				t.Error("failed to return the right value", v, ti.expect[i])
+			}
+
+			i++
 		}
 	}
 }

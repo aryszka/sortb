@@ -31,10 +31,8 @@ type Value interface {
 	Less(i Value) bool
 
 	// Equal is used to identify values. Identical values are
-	// stored only once. To be able to delete a value from
-	// the tree, it must be identified by Equal(). It is OK
-	// to return always false, if the Delete() function is
-	// not used.
+	// stored only once. It is OK to return always false, if
+	// the Delete() and Find() functions are not used.
 	Equal(i Value) bool
 }
 
@@ -117,12 +115,41 @@ func insert(to *node, n *node) *node {
 	return to
 }
 
-func smallest(n *node) *node {
-	if n == nil || n.less == nil {
+func find(n *node, v Value) *node {
+	if n == nil || v == nil {
+		return nil
+	}
+
+	if n.value.Equal(v) {
 		return n
 	}
 
-	return smallest(n.less)
+	if n.value.Less(v) {
+		return find(n.greater, v)
+	}
+
+	return find(n.less, v)
+}
+
+func next(n *node, v Value) *node {
+	if n == nil || v == nil {
+		return nil
+	}
+
+	if v.Less(n.value) {
+		if n.less == nil {
+			return n
+		}
+
+		nl := next(n.less, v)
+		if nl == nil {
+			return n
+		}
+
+		return nl
+	}
+
+	return next(n.greater, v)
 }
 
 // TODO:
@@ -142,7 +169,7 @@ func del(n *node, v Value) (*node, bool) {
 		case n.greater == nil:
 			n = n.less
 		default:
-			nn := smallest(n.greater)
+			nn := next(n, n.value)
 			n.value = nn.value
 			n.greater, _ = del(n.greater, n.value)
 			n.updateDepth()
@@ -172,6 +199,20 @@ func (t *Tree) Insert(v Value) {
 	if v != nil {
 		t.node = insert(t.node, &node{value: v, depth: 1})
 	}
+}
+
+// Find returns true if a value is a member of the tree.
+func (t *Tree) Find(v Value) bool {
+	return find(t.node, v) != nil
+}
+
+func (t *Tree) Next(v Value) Value {
+	n := next(t.node, v)
+	if n == nil {
+		return nil
+	}
+
+	return n.value
 }
 
 // Delete a value from the tree.
