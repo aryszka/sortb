@@ -241,28 +241,30 @@ func (t *Tree) Find(v Value) bool {
 	return find(t.node, v) != nil
 }
 
-// Next returns the next value in order or nil if no such value
-// was found. The value represented by the v argument does not
-// need to be a member of the tree.
-func (t *Tree) Next(v Value) Value {
+// Next returns the next value in order and true, or it returns
+// false as the second argument if such value was not found. The
+// value of the v argument does not need to be a member of the
+// tree.
+func (t *Tree) Next(v Value) (Value, bool) {
 	n := next(t.node, v)
 	if n == nil {
-		return nil
+		return nil, false
 	}
 
-	return n.value
+	return n.value, true
 }
 
-// Prev returns the previous value in order or nil if no such value
-// was found. The value represented by the v argument does not need
-// to be a member of the tree.
-func (t *Tree) Prev(v Value) Value {
+// Prev returns the previous value in order and true, or it
+// returns false as the second argument if such value was not
+// found. The value of the v argument does not need to be a
+// member of the tree.
+func (t *Tree) Prev(v Value) (Value, bool) {
 	n := prev(t.node, v)
 	if n == nil {
-		return nil
+		return nil, false
 	}
 
-	return n.value
+	return n.value, true
 }
 
 // Delete a value from the tree. It returns true if the tree was
@@ -278,13 +280,13 @@ func (t *Tree) Delete(v Value) bool {
 //
 // The from argument tells the iterator where to start the iteration.
 // If it is nil, it starts at the beginning. If it is not nil, it
-// starts with the first value that is not less and not equal to from.
-// The value of from does not need to be a member of the tree.
+// starts with the first value than which from is less. The value of
+// from does not need to be a member of the tree.
 func (t *Tree) Iterate(from Value) *Iterator {
 	return newIterator(t.node, from, false)
 }
 
-// Reverse is like Iterate but in reverse order.
+// Reverse is like Iterate but with reverse order.
 func (t *Tree) Reverse(from Value) *Iterator {
 	return newIterator(t.node, from, true)
 }
@@ -358,7 +360,7 @@ func (i *Iterator) afterFrom(v Value) bool {
 
 // Next returns the next value in order (or the previous in case of
 // the reverse iterator). If the iterator has reached the last stored
-// value, Next() returns nil.
+// value, Next() returns false as the second argument, otherwise true.
 func (i *Iterator) Next() (Value, bool) {
 	if i.child != nil {
 		if v, ok := i.child.Next(); ok && i.afterFrom(v) {

@@ -190,61 +190,74 @@ func TestNext(t *testing.T) {
 	for _, ti := range []struct {
 		init        []intt
 		value, next Value
+		found       bool
 	}{{
 		nil,
 		nil,
 		nil,
+		false,
 	}, {
 		nil,
 		intt(42),
 		nil,
+		false,
 	}, {
 		[]intt{42},
 		nil,
 		nil,
+		false,
 	}, {
 		[]intt{42},
 		intt(81),
 		nil,
+		false,
 	}, {
 		[]intt{42},
 		intt(42),
 		nil,
+		false,
 	}, {
 		[]intt{42},
 		intt(18),
 		intt(42),
+		true,
 	}, {
 		[]intt{-18, -5, 3, 42},
 		nil,
 		nil,
+		false,
 	}, {
 		[]intt{-18, -5, 3, 42},
 		intt(-42),
 		intt(-18),
+		true,
 	}, {
 		[]intt{-18, -5, 3, 42},
 		intt(-18),
 		intt(-5),
+		true,
 	}, {
 		[]intt{-18, -5, 3, 42},
 		intt(1),
 		intt(3),
+		true,
 	}, {
 		[]intt{-18, -5, 3, 42},
 		intt(3),
 		intt(42),
+		true,
 	}, {
 		[]intt{-18, -5, 3, 42},
 		intt(42),
 		nil,
+		false,
 	}} {
 		tree := new(Tree)
 		for _, i := range ti.init {
 			tree.Insert(i)
 		}
 
-		if n := tree.Next(ti.value); n != ti.next {
+		if n, found := tree.Next(ti.value); found != ti.found || n != ti.next {
 			t.Error("failed to find next value", n, ti.next)
 		}
 	}
@@ -254,61 +267,74 @@ func TestPrev(t *testing.T) {
 	for _, ti := range []struct {
 		init        []intt
 		value, next Value
+		found       bool
 	}{{
 		nil,
 		nil,
 		nil,
+		false,
 	}, {
 		nil,
 		intt(42),
 		nil,
+		false,
 	}, {
 		[]intt{42},
 		nil,
 		nil,
+		false,
 	}, {
 		[]intt{42},
 		intt(18),
 		nil,
+		false,
 	}, {
 		[]intt{42},
 		intt(42),
 		nil,
+		false,
 	}, {
 		[]intt{42},
 		intt(81),
 		intt(42),
+		true,
 	}, {
 		[]intt{-18, -5, 3, 42},
 		nil,
 		nil,
+		false,
 	}, {
 		[]intt{-18, -5, 3, 42},
 		intt(81),
 		intt(42),
+		true,
 	}, {
 		[]intt{-18, -5, 3, 42},
 		intt(42),
 		intt(3),
+		true,
 	}, {
 		[]intt{-18, -5, 3, 42},
 		intt(1),
 		intt(-5),
+		true,
 	}, {
 		[]intt{-18, -5, 3, 42},
 		intt(-5),
 		intt(-18),
+		true,
 	}, {
 		[]intt{-18, -5, 3, 42},
 		intt(-18),
 		nil,
+		false,
 	}} {
 		tree := new(Tree)
 		for _, i := range ti.init {
 			tree.Insert(i)
 		}
 
-		if n := tree.Prev(ti.value); n != ti.next {
+		if n, found := tree.Prev(ti.value); found != ti.found || n != ti.next {
 			t.Error("failed to find previous value", n, ti.next)
 		}
 	}

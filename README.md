@@ -12,6 +12,11 @@ Documentation: https://godoc.org/github.com/aryszka/sortb
 **Example:**
 
 ```
+type intt int
+
+func (i intt) Less(j sortb.Value) bool  { return i < j.(intt) }
+func (i intt) Equal(j sortb.Value) bool { return i == j.(intt) }
+
 t := new(sortb.Tree)
 for _, i := range []intt{-2, 5, 3, 0, 3, -1} {
 	t.Insert(i)
