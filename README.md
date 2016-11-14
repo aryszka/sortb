@@ -9,7 +9,7 @@ using a balanced binary search tree.
 
 Documentation: https://godoc.org/github.com/aryszka/sortb
 
-Example:
+**Example:**
 
 ```
 t := new(sortb.Tree)
@@ -27,3 +27,11 @@ for {
 	fmt.Println(v)
 }
 ```
+
+**Features:**
+
+- independent comparison and equality of stored objects
+- basic operations: insert, find, delete, iterate
+- reverse iterate
+- iterate from an arbitrary start value
+- next/prev from an arbitrary value
