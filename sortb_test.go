@@ -113,6 +113,31 @@ func TestInsertIter(t *testing.T) {
 	}
 }
 
+func TestInsertChange(t *testing.T) {
+	for _, ti := range []struct {
+		init    []intt
+		insert  intt
+		changed bool
+	}{{
+		[]intt{-5, 42},
+		intt(42),
+		false,
+	}, {
+		[]intt{-5, 42},
+		intt(-18),
+		true,
+	}} {
+		tree := new(Tree)
+		for _, i := range ti.init {
+			tree.Insert(i)
+		}
+
+		if tree.Insert(ti.insert) != ti.changed {
+			t.Error("failed to insert")
+		}
+	}
+}
+
 func TestFind(t *testing.T) {
 	for _, ti := range []struct {
 		init   []intt

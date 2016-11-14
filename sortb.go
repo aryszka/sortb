@@ -105,24 +105,25 @@ func balance(n *node) *node {
 	return n
 }
 
-func insert(to *node, n *node) *node {
+func insert(to *node, n *node) (*node, bool) {
 	if to == nil {
-		return n
+		return n, true
 	}
 
 	if n.value.Equal(to.value) {
-		return to
+		return to, false
 	}
 
+	var changed bool
 	if n.value.Less(to.value) {
-		to.less = insert(to.less, n)
+		to.less, changed = insert(to.less, n)
 	} else {
-		to.greater = insert(to.greater, n)
+		to.greater, changed = insert(to.greater, n)
 	}
 
 	to.updateDepth()
 	to = balance(to)
-	return to
+	return to, changed
 }
 
 func find(n *node, v Value) *node {
@@ -223,11 +224,16 @@ func del(n *node, v Value) (*node, bool) {
 }
 
 // Insert a value in the tree. If the value is already
-// a member of the tree, the tree stays unchanged.
-func (t *Tree) Insert(v Value) {
-	if v != nil {
-		t.node = insert(t.node, &node{value: v, depth: 1})
+// a member of the tree, the tree stays unchanged. It
+// returns true if the tree was changed.
+func (t *Tree) Insert(v Value) bool {
+	if v == nil {
+		return false
 	}
+
+	var changed bool
+	t.node, changed = insert(t.node, &node{value: v, depth: 1})
+	return changed
 }
 
 // Find returns true if a value is a member of the tree.
